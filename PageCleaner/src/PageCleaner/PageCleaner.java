@@ -1,3 +1,4 @@
+package PageCleaner;
 /*
 * Copyright (c) 2011, 2014 Oracle and/or its affiliates.
  * All rights reserved. Use is subject to license terms.
