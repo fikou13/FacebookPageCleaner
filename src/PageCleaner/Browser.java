@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.CookieManager;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.effect.Light.Point;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
@@ -35,6 +37,12 @@ import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 
 
+class PPoint {
+	
+	public double x;
+	public double y; 
+	public  Boolean move;
+}
 
 class Browser extends Region {
 
@@ -42,8 +50,9 @@ class Browser extends Region {
 	final static  WebView browser = new WebView();
 	public static final WebEngine webEngine = browser.getEngine();
 
-
-	
+	int macro_idx = 0;
+	PPoint [] macro = new PPoint [30];
+	Date macro_move = new Date();
 	
     CookieManager cookieManager = new CookieManager();
    
@@ -76,19 +85,23 @@ class Browser extends Region {
 		});
 	}
 
-	public  void click(int x, int y){
+	public  void click(int x, int y, Boolean move){
 		try {
 			Robot bot = new Robot();
 		    bot.mouseMove(x, y);    
 		    Thread.sleep(100);
-		    bot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-		    Thread.sleep(100);
-		    bot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+		    
+		    if (move != true)
+		    {
+			    bot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+			    Thread.sleep(100);
+			    bot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+		    }
+
 		    int time_wait = 3*1000;
 		    try {
 		    	time_wait = Integer.parseInt(time_refresh.getText()) * 1000;
 		    }catch (final NumberFormatException e) {}
-		    
 		    Thread.sleep(time_wait);
 		    
 		} catch (InterruptedException | AWTException e) {
@@ -115,12 +128,12 @@ class Browser extends Region {
 		if (start_clean) {
 			  Thread cleanThread = new Thread(new Runnable() {
 	  	         public void run() {
-	  	        	 if (c_X_int>-1 & c_Y_int>-1) {
-	  				 click(c_X_int, c_Y_int);
-	  				 click(c_X_int - 165 , c_Y_int);
-	  				 refresh();
+	  	        	 for (int i = 0; i < macro_idx; i++)
+	  	        	 {
+	  	        	 	 click((int)macro[i].x, (int)macro[i].y, macro[i].move);
 	  	        	 }
-	  		     }
+	  				 refresh();
+	  	         }
 		   	    });  
 			 cleanThread.start();
 		}
@@ -179,13 +192,56 @@ class Browser extends Region {
 			}
 		});
 
+		browser.addEventHandler(MouseEvent.MOUSE_MOVED, 
+                new EventHandler<MouseEvent>() {
+                    public void handle(MouseEvent e) {
+                    	if (start_configure) {
+                    	    Date date = new Date();
+                    	    long timeMilli = date.getTime();
+                    	    if (timeMilli - macro_move.getTime() > 1000)
+                    	    {
+                    	    	PPoint p = new PPoint();
+                        		p.x=e.getScreenX();
+                        		p.y=e.getScreenY();
+                        		p.move=true;
+                    	    	macro[macro_idx] = p;
+                    	    	macro_idx++;
+                        		
+                        		for (int i = 0; i < macro_idx; i++)
+                        		{
+                        			System.out.print(",("+ macro[i].x+","+macro[i].y+","+macro[i].move+")");
+                        		}
+                        		
+                        		System.out.println();
+                    	    }
+                    	    
+                    		macro_move = new Date();
+                    		
+                    	}
+                    }
+                });
 
 		browser.addEventHandler(MouseEvent.MOUSE_PRESSED, 
                 new EventHandler<MouseEvent>() {
                     public void handle(MouseEvent e) {
                     	if (start_configure) {
+                    		
                     		c_X_int = (int) e.getScreenX();
                     		c_Y_int = (int) e.getScreenY();
+                    		
+                	    	PPoint p = new PPoint();
+                    		p.x=e.getScreenX();
+                    		p.y=e.getScreenY();
+                    		p.move=false;
+                    		macro[macro_idx] = p;
+                    		macro_idx++;
+                    		
+                    		for (int i = 0; i < macro_idx; i++)
+                    		{
+                    			System.out.print(",("+ macro[i].x+","+macro[i].y+","+macro[i].move+")");
+                    		}
+                    		
+                    		System.out.println();
                     		c_X.setText(""+c_X_int);
                     		c_Y.setText(""+c_Y_int);
                     	}
@@ -200,6 +256,8 @@ class Browser extends Region {
 		
 		configure.setOnAction(new EventHandler<ActionEvent>() {
 			@Override public void handle(ActionEvent e) {
+				macro = new PPoint [30];
+				macro_idx = 0;
 				start_configure = true;
 
 			}
